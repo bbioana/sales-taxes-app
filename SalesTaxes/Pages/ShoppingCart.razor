@@ -1,0 +1,92 @@
+﻿@page "/shoppingcart"
+@page "/shoppingcart/{ShoppingCartNo:int}"
+
+<PageTitle>Shopping Cart  @ShoppingCartNo </PageTitle>
+@using SalesTaxes.Data.Services
+@using Cart = SalesTaxes.Data.ShoppingCart;
+@inject ShoppingCartService _shoppingCartService;
+
+<div class="container-fluid p-2 bg-primary text-white">
+    <h1 style ="text-align: center">Shopping Cart  @ShoppingCartNo</h1>
+</div>
+
+<p style="margin: 10px 0px">Details about your shopping cart:</p>
+
+@if (_shoppingCart.Products.Count == 0)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table" style="text-align: center">
+        <thead class="table-primary">
+        <tr>
+            <th>Qty</th>
+            <th>Product Name</th>
+            <th>Imported</th>
+            <th>Price (without taxes) *</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var product in _shoppingCart.Products)
+        {
+            <tr>
+                <td>@product.Quantity</td>
+                <td>@product.Name</td>
+                <td><input type="checkbox" @bind="product.IsImported" disabled="disabled"/></td>
+                <td>@product.Price</td>
+                
+            </tr>
+        }
+        </tbody>
+    </table>
+    <div>
+        <p style="font-size: 11px; font-family: Nunito, Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';" align="left">
+            * Note: The taxes will be calculated after you checkout the shopping cart
+            <br/>
+            - 10% (basic tax) on all goods, except books, food, and medical products
+            <br/>
+            - 5% (import tax) is an additional tax applicable on all imported goods, with no exceptions
+
+        </p>
+        <button class="btn btn-primary" style="margin: auto;" @onclick="CalculateInvoice">CHECKOUT</button>
+    </div>
+    
+
+    <div class="card" style="margin: 10px auto 10px auto; width: 400px; padding: 10px 0px 0px 10px;background-color: #c5d7f2;" hidden="@HideInvoice">
+        <div class="card-body">
+            <h4 class="card-title">Invoice Details</h4>
+            <ul class="card-text">
+                @foreach (var product in _shoppingCart.Products)
+                {
+                    <li>@product.Quantity @product.Name @product.PriceWithTaxes</li>
+                }
+            </ul>
+            <p>
+                Sales Taxes: @_shoppingCart.SalesTaxes
+                <br/>
+                Total: @_shoppingCart.Total
+            </p>
+        </div>
+    </div>
+}
+
+@code {
+    private Cart _shoppingCart = new();
+    private bool HideInvoice {get;set;} = true;
+
+    [Parameter]
+    public int ShoppingCartNo { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _shoppingCart = await _shoppingCartService.GetShoppingCartAsync(ShoppingCartNo);
+    }
+
+    private void CalculateInvoice()
+    {
+        _shoppingCartService.CalculateTotal(_shoppingCart);
+        HideInvoice = false;
+    }
+
+}
